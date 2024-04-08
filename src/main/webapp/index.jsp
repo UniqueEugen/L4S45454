@@ -9,5 +9,6 @@
 </h1>
 <br/>
 <a href="hello-servlet">Hello Servlet</a>
+<a href="SendMessageServlet">Send message</a>
 </body>
-</ht
+</html>

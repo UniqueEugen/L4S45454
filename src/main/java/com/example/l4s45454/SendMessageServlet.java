@@ -1,65 +1,43 @@
-package com.example.cl;
+package com.example.l4s45454;
 
-import javax.jms.JMSException;
+import jakarta.annotation.Resource;
+import jakarta.jms.*;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-import javax.jms.*;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 import java.io.IOException;
 
 @WebServlet("/SendMessageServlet")
 public class SendMessageServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
 
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-        Connection connection = null;
-        Session session = null;
-        String text = req.getParameter("text") != null ? req.getParameter("text") : "Hello World";
+    @Resource(mappedName = "jms/MyQueue")
+    private Queue queue;
+
+    @Resource(mappedName = "jms/ConnectionFactory")
+    private ConnectionFactory connectionFactory;
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
         try {
-            Context ic = new InitialContext();
-            ConnectionFactory cf = (ConnectionFactory) ic.lookup("jms.ConnectionFactory");
-            Queue queue = (Queue) ic.lookup("jms/MyQueue");
-            // Получение подключения и сессии JMS
-            connection = cf.createConnection();
-            session = connection.createSession(false, jakarta.jms.Session.AUTO_ACKNOWLEDGE);
-
-            // Создание сообщения и отправка его в очередь
-            javax.jms.MessageProducer producer = session.createProducer(queue);
-
+            Connection connection = connectionFactory.createConnection();
+            Session session = connection.createSession(false,
+                    Session.AUTO_ACKNOWLEDGE);
+            MessageProducer messageProducer =
+                    session.createProducer(queue);
+            TextMessage message = session.createTextMessage();
             for (int i = 0; i < 10; i++) {
-                String messageText = "Сообщение " + (i + 1);
-                javax.jms.TextMessage message = session.createTextMessage(messageText);
-                producer.send(message);
-                System.out.println("Отправлено сообщение: " + messageText);
-            }
-        } catch (javax.jms.JMSException e) {
-            e.printStackTrace();
-        } catch (NamingException e) {
-            throw new RuntimeException(e);
-        } finally {
-            // Закрытие ресурсов JMS
-            if (session != null) {
-                try {
-                    session.close();
-                } catch (JMSException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (JMSException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+                message.setText("This is message " + (i + 1));
+                System.out.println("Sending message: " +
+                        message.getText());
+                messageProducer.send(message); }
 
+            response.getWriter().println("Message successfully sended: " + message);
+        } catch (Exception e) {
+            response.getWriter().println("Error during sending message: " + e.getMessage());
+        }
     }
 }
